@@ -63,6 +63,12 @@ set_target_properties(SDL2::SDL2 PROPERTIES
 )
 
 add_executable(software_renderer
-    src/main.cpp
+    src/app/main.cpp
+    src/core/SoftwareRenderer.cpp
+    src/core/Surface.cpp
+    src/platform/InputState.cpp
+    src/platform/SDLPlatform.cpp
 )
+target_include_directories(software_renderer PRIVATE src)
+target_compile_options(software_renderer PRIVATE -fno-exceptions -fno-rtti)
 target_link_libraries(software_renderer PRIVATE SDL2::SDL2)
