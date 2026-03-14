@@ -42,3 +42,8 @@
 
 # Build directories
 build/
+
+# Keep checked-in prebuilt libraries.
+!prebuilt/
+!prebuilt/**/
+!prebuilt/**/*.a
