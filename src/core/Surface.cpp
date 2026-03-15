@@ -29,6 +29,16 @@ void Surface::ClearDepth(float depth)
     std::fill(m_DepthBuffer.begin(), m_DepthBuffer.end(), depth);
 }
 
+void Surface::PutPixel(int x, int y, std::uint32_t color)
+{
+    if (x < 0 || y < 0 || x >= m_Width || y >= m_Height) {
+        return;
+    }
+
+    const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(m_Width) + static_cast<std::size_t>(x);
+    m_ColorBuffer[index] = color;
+}
+
 int Surface::GetWidth() const
 {
     return m_Width;

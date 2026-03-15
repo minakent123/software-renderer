@@ -14,6 +14,7 @@ public:
     void Resize(int width, int height);
     void ClearColor(std::uint32_t color);
     void ClearDepth(float depth);
+    void PutPixel(int x, int y, std::uint32_t color);
 
     int GetWidth() const;
     int GetHeight() const;
