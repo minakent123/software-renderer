@@ -19,7 +19,7 @@ void Surface::Resize(int width, int height)
     m_DepthBuffer.resize(pixelCount);
 }
 
-void Surface::ClearColor(std::uint32_t color)
+void Surface::ClearColor(uint32_t color)
 {
     std::fill(m_ColorBuffer.begin(), m_ColorBuffer.end(), color);
 }
@@ -29,7 +29,7 @@ void Surface::ClearDepth(float depth)
     std::fill(m_DepthBuffer.begin(), m_DepthBuffer.end(), depth);
 }
 
-void Surface::PutPixel(int x, int y, std::uint32_t color)
+void Surface::PutPixel(int x, int y, uint32_t color)
 {
     if (x < 0 || y < 0 || x >= m_Width || y >= m_Height) {
         return;
@@ -51,15 +51,15 @@ int Surface::GetHeight() const
 
 int Surface::GetColorPitchBytes() const
 {
-    return static_cast<int>(sizeof(std::uint32_t) * static_cast<std::size_t>(m_Width));
+    return static_cast<int>(sizeof(uint32_t) * static_cast<std::size_t>(m_Width));
 }
 
-std::uint32_t* Surface::GetColorData()
+uint32_t* Surface::GetColorData()
 {
     return m_ColorBuffer.data();
 }
 
-const std::uint32_t* Surface::GetColorData() const
+const uint32_t* Surface::GetColorData() const
 {
     return m_ColorBuffer.data();
 }

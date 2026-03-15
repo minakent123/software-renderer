@@ -1,16 +1,16 @@
 #include "core/SoftwareRenderer.h"
 
-#include <cstdint>
+#include <stdint.h>
 
 #include "core/Surface.h"
 
 namespace core {
 namespace {
 
-std::uint32_t PackRgba8(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a)
+uint32_t PackRgba8(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-    return static_cast<std::uint32_t>(r) | (static_cast<std::uint32_t>(g) << 8U) |
-           (static_cast<std::uint32_t>(b) << 16U) | (static_cast<std::uint32_t>(a) << 24U);
+    return static_cast<uint32_t>(r) | (static_cast<uint32_t>(g) << 8U) | (static_cast<uint32_t>(b) << 16U) |
+           (static_cast<uint32_t>(a) << 24U);
 }
 
 }  // namespace

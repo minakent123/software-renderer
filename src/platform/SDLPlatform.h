@@ -23,7 +23,7 @@ public:
     void BeginFrame() override;
     void PollEvents() override;
     const InputState& GetInput() const override;
-    void PresentRgba8(const std::uint32_t* pPixels, int width, int height, int pitchBytes) override;
+    void PresentRgba8(const uint32_t* pPixels, int width, int height, int pitchBytes) override;
     double GetNowSeconds() const override;
     int GetWidth() const override;
     int GetHeight() const override;

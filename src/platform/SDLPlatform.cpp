@@ -173,7 +173,7 @@ const InputState& SDLPlatform::GetInput() const
     return m_pImpl->Input;
 }
 
-void SDLPlatform::PresentRgba8(const std::uint32_t* pPixels, int width, int height, int pitchBytes)
+void SDLPlatform::PresentRgba8(const uint32_t* pPixels, int width, int height, int pitchBytes)
 {
     if (!m_pImpl->IsValid || pPixels == nullptr || width <= 0 || height <= 0) {
         return;

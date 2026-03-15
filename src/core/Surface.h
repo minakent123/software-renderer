@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include <vector>
 
 namespace core {
@@ -12,21 +12,21 @@ public:
     Surface(int width, int height);
 
     void Resize(int width, int height);
-    void ClearColor(std::uint32_t color);
+    void ClearColor(uint32_t color);
     void ClearDepth(float depth);
-    void PutPixel(int x, int y, std::uint32_t color);
+    void PutPixel(int x, int y, uint32_t color);
 
     int GetWidth() const;
     int GetHeight() const;
     int GetColorPitchBytes() const;
 
-    std::uint32_t* GetColorData();
-    const std::uint32_t* GetColorData() const;
+    uint32_t* GetColorData();
+    const uint32_t* GetColorData() const;
 
 private:
     int m_Width = 0;
     int m_Height = 0;
-    std::vector<std::uint32_t> m_ColorBuffer;
+    std::vector<uint32_t> m_ColorBuffer;
     std::vector<float> m_DepthBuffer;
 };
 
