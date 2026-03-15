@@ -27,9 +27,14 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
         return;
     }
 
-    const int centerX = width / 2;
     const int centerY = height / 2;
-    target.PutPixel(centerX, centerY, PackRgba8(255, 255, 255, 255));
+    const int lineLength = width / 2;
+    const int lineStartX = (width - lineLength) / 2;
+    const int lineEndX = lineStartX + lineLength;
+
+    for (int x = lineStartX; x < lineEndX; ++x) {
+        target.PutPixel(x, centerY, PackRgba8(255, 255, 255, 255));
+    }
 }
 
 }  // namespace core
