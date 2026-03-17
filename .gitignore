@@ -43,6 +43,7 @@
 # Build directories
 build/
 tmp/
+notes/
 
 # Keep checked-in prebuilt libraries.
 !prebuilt/
