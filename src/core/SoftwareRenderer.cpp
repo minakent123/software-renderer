@@ -61,15 +61,16 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
         return;
     }
 
-    const int centerY = height / 2;
-    const int lineLength = width / 2;
-    const int lineStartX = (width - lineLength) / 2;
-    const int lineEndX = lineStartX + lineLength - 1;
-    const int diagonalStartY = height / 3;
-    const int diagonalEndY = diagonalStartY + (height / 3);
+    const int apexX = width / 2;
+    const int apexY = height / 4;
+    const int baseY = (height * 3) / 4;
+    const int leftX = width / 4;
+    const int rightX = (width * 3) / 4;
+    const uint32_t triangleColor = PackRgba8(255, 180, 80, 255);
 
-    DrawLine(target, lineStartX, centerY, lineEndX, centerY, PackRgba8(255, 255, 255, 255));
-    DrawLine(target, lineStartX, diagonalStartY, lineEndX, diagonalEndY, PackRgba8(255, 180, 80, 255));
+    DrawLine(target, apexX, apexY, leftX, baseY, triangleColor);
+    DrawLine(target, leftX, baseY, rightX, baseY, triangleColor);
+    DrawLine(target, rightX, baseY, apexX, apexY, triangleColor);
 }
 
 }  // namespace core
