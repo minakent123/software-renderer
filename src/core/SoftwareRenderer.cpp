@@ -1,11 +1,19 @@
 #include "core/SoftwareRenderer.h"
 
+#include <cmath>
 #include <stdint.h>
+#include <utility>
 
 #include "core/Surface.h"
 
 namespace core {
 namespace {
+
+struct Point
+{
+    int X;
+    int Y;
+};
 
 uint32_t PackRgba8(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
@@ -16,6 +24,21 @@ uint32_t PackRgba8(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 int Abs(int value)
 {
     return value < 0 ? -value : value;
+}
+
+void SortVerticesByY(Point& v0, Point& v1, Point& v2)
+{
+    if (v1.Y < v0.Y || (v1.Y == v0.Y && v1.X < v0.X)) {
+        std::swap(v0, v1);
+    }
+
+    if (v2.Y < v1.Y || (v2.Y == v1.Y && v2.X < v1.X)) {
+        std::swap(v1, v2);
+    }
+
+    if (v1.Y < v0.Y || (v1.Y == v0.Y && v1.X < v0.X)) {
+        std::swap(v0, v1);
+    }
 }
 
 void DrawLine(Surface& target, int x0, int y0, int x1, int y1, uint32_t color)
@@ -47,6 +70,75 @@ void DrawLine(Surface& target, int x0, int y0, int x1, int y1, uint32_t color)
     }
 }
 
+void DrawHorizontalSpan(Surface& target, int x0, int x1, int y, uint32_t color)
+{
+    if (x1 < x0) {
+        std::swap(x0, x1);
+    }
+
+    for (int x = x0; x <= x1; ++x) {
+        target.PutPixel(x, y, color);
+    }
+}
+
+bool IsScanlineInEdgeRange(int y, const Point& a, const Point& b)
+{
+    if (a.Y == b.Y) {
+        return false;
+    }
+
+    const int minY = a.Y < b.Y ? a.Y : b.Y;
+    const int maxY = a.Y < b.Y ? b.Y : a.Y;
+    return y >= minY && y < maxY;
+}
+
+double GetEdgeIntersectionX(const Point& a, const Point& b, int y)
+{
+    const double scanlineY = static_cast<double>(y) + 0.5;
+    const double deltaY = static_cast<double>(b.Y - a.Y);
+    const double t = (scanlineY - static_cast<double>(a.Y)) / deltaY;
+    return static_cast<double>(a.X) + t * static_cast<double>(b.X - a.X);
+}
+
+void FillTriangle(Surface& target, Point v0, Point v1, Point v2, uint32_t color)
+{
+    SortVerticesByY(v0, v1, v2);
+
+    if (v0.Y == v2.Y) {
+        return;
+    }
+
+    for (int y = v0.Y; y < v2.Y; ++y) {
+        double intersections[2] = {};
+        int intersectionCount = 0;
+
+        if (IsScanlineInEdgeRange(y, v0, v1)) {
+            intersections[intersectionCount++] = GetEdgeIntersectionX(v0, v1, y);
+        }
+
+        if (IsScanlineInEdgeRange(y, v1, v2)) {
+            intersections[intersectionCount++] = GetEdgeIntersectionX(v1, v2, y);
+        }
+
+        if (IsScanlineInEdgeRange(y, v0, v2)) {
+            intersections[intersectionCount++] = GetEdgeIntersectionX(v0, v2, y);
+        }
+
+        if (intersectionCount != 2) {
+            continue;
+        }
+
+        const double leftIntersection = intersections[0] < intersections[1] ? intersections[0] : intersections[1];
+        const double rightIntersection = intersections[0] < intersections[1] ? intersections[1] : intersections[0];
+        const int startX = static_cast<int>(std::ceil(leftIntersection - 0.5));
+        const int endX = static_cast<int>(std::floor(rightIntersection - 0.5));
+
+        if (startX <= endX) {
+            DrawHorizontalSpan(target, startX, endX, y, color);
+        }
+    }
+}
+
 }  // namespace
 
 void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
@@ -61,16 +153,16 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
         return;
     }
 
-    const int apexX = width / 2;
-    const int apexY = height / 4;
-    const int baseY = (height * 3) / 4;
-    const int leftX = width / 4;
-    const int rightX = (width * 3) / 4;
-    const uint32_t triangleColor = PackRgba8(255, 180, 80, 255);
+    const Point apex = {width / 2, height / 4};
+    const Point left = {width / 4, (height * 3) / 4};
+    const Point right = {(width * 3) / 4, (height * 3) / 4};
+    const uint32_t fillColor = PackRgba8(255, 180, 80, 255);
+    const uint32_t outlineColor = PackRgba8(255, 245, 220, 255);
 
-    DrawLine(target, apexX, apexY, leftX, baseY, triangleColor);
-    DrawLine(target, leftX, baseY, rightX, baseY, triangleColor);
-    DrawLine(target, rightX, baseY, apexX, apexY, triangleColor);
+    FillTriangle(target, apex, left, right, fillColor);
+    DrawLine(target, apex.X, apex.Y, left.X, left.Y, outlineColor);
+    DrawLine(target, left.X, left.Y, right.X, right.Y, outlineColor);
+    DrawLine(target, right.X, right.Y, apex.X, apex.Y, outlineColor);
 }
 
 }  // namespace core
