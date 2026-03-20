@@ -11,57 +11,57 @@ Surface::Surface(int width, int height)
 
 void Surface::Resize(int width, int height)
 {
-    m_Width = width;
-    m_Height = height;
+    m_width = width;
+    m_height = height;
 
-    const std::size_t pixelCount = static_cast<std::size_t>(m_Width) * static_cast<std::size_t>(m_Height);
-    m_ColorBuffer.resize(pixelCount);
-    m_DepthBuffer.resize(pixelCount);
+    const std::size_t pixelCount = static_cast<std::size_t>(m_width) * static_cast<std::size_t>(m_height);
+    m_colorBuffer.resize(pixelCount);
+    m_depthBuffer.resize(pixelCount);
 }
 
 void Surface::ClearColor(uint32_t color)
 {
-    std::fill(m_ColorBuffer.begin(), m_ColorBuffer.end(), color);
+    std::fill(m_colorBuffer.begin(), m_colorBuffer.end(), color);
 }
 
 void Surface::ClearDepth(float depth)
 {
-    std::fill(m_DepthBuffer.begin(), m_DepthBuffer.end(), depth);
+    std::fill(m_depthBuffer.begin(), m_depthBuffer.end(), depth);
 }
 
 void Surface::PutPixel(int x, int y, uint32_t color)
 {
-    if (x < 0 || y < 0 || x >= m_Width || y >= m_Height) {
+    if (x < 0 || y < 0 || x >= m_width || y >= m_height) {
         return;
     }
 
-    const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(m_Width) + static_cast<std::size_t>(x);
-    m_ColorBuffer[index] = color;
+    const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(m_width) + static_cast<std::size_t>(x);
+    m_colorBuffer[index] = color;
 }
 
 int Surface::GetWidth() const
 {
-    return m_Width;
+    return m_width;
 }
 
 int Surface::GetHeight() const
 {
-    return m_Height;
+    return m_height;
 }
 
 int Surface::GetColorPitchBytes() const
 {
-    return static_cast<int>(sizeof(uint32_t) * static_cast<std::size_t>(m_Width));
+    return static_cast<int>(sizeof(uint32_t) * static_cast<std::size_t>(m_width));
 }
 
 uint32_t* Surface::GetColorData()
 {
-    return m_ColorBuffer.data();
+    return m_colorBuffer.data();
 }
 
 const uint32_t* Surface::GetColorData() const
 {
-    return m_ColorBuffer.data();
+    return m_colorBuffer.data();
 }
 
 }  // namespace core

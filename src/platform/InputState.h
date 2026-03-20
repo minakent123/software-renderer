@@ -11,17 +11,17 @@ constexpr std::size_t KeyCodeCount = static_cast<std::size_t>(KeyCode::Count);
 
 struct InputState
 {
-    bool Quit = false;
-    int MouseX = 0;
-    int MouseY = 0;
-    int MouseDeltaX = 0;
-    int MouseDeltaY = 0;
-    float WheelDeltaY = 0.0F;
-    bool MouseDownL = false;
-    bool MouseDownR = false;
-    std::array<bool, KeyCodeCount> KeysDown{};
-    std::array<bool, KeyCodeCount> KeysPressed{};
-    std::array<bool, KeyCodeCount> KeysReleased{};
+    bool quit = false;
+    int mouseX = 0;
+    int mouseY = 0;
+    int mouseDeltaX = 0;
+    int mouseDeltaY = 0;
+    float wheelDeltaY = 0.0F;
+    bool mouseDownL = false;
+    bool mouseDownR = false;
+    std::array<bool, KeyCodeCount> keysDown{};
+    std::array<bool, KeyCodeCount> keysPressed{};
+    std::array<bool, KeyCodeCount> keysReleased{};
 
     void BeginFrame();
     bool IsKeyDown(KeyCode code) const;

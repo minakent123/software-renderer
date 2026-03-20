@@ -14,11 +14,11 @@ std::size_t ToIndex(KeyCode code)
 
 void InputState::BeginFrame()
 {
-    MouseDeltaX = 0;
-    MouseDeltaY = 0;
-    WheelDeltaY = 0.0F;
-    std::fill(KeysPressed.begin(), KeysPressed.end(), false);
-    std::fill(KeysReleased.begin(), KeysReleased.end(), false);
+    mouseDeltaX = 0;
+    mouseDeltaY = 0;
+    wheelDeltaY = 0.0F;
+    std::fill(keysPressed.begin(), keysPressed.end(), false);
+    std::fill(keysReleased.begin(), keysReleased.end(), false);
 }
 
 bool InputState::IsKeyDown(KeyCode code) const
@@ -27,7 +27,7 @@ bool InputState::IsKeyDown(KeyCode code) const
         return false;
     }
 
-    return KeysDown[ToIndex(code)];
+    return keysDown[ToIndex(code)];
 }
 
 void InputState::SetKeyDown(KeyCode code, bool down)
@@ -37,15 +37,15 @@ void InputState::SetKeyDown(KeyCode code, bool down)
     }
 
     const std::size_t index = ToIndex(code);
-    const bool wasDown = KeysDown[index];
+    const bool wasDown = keysDown[index];
 
-    KeysDown[index] = down;
+    keysDown[index] = down;
     if (!wasDown && down) {
-        KeysPressed[index] = true;
+        keysPressed[index] = true;
     }
 
     if (wasDown && !down) {
-        KeysReleased[index] = true;
+        keysReleased[index] = true;
     }
 }
 

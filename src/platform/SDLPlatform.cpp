@@ -28,18 +28,18 @@ struct SDLPlatform::Impl
     SDL_Window* pWindow = nullptr;
     SDL_Renderer* pRenderer = nullptr;
     SDL_Texture* pTexture = nullptr;
-    InputState Input;
-    int Width = 0;
-    int Height = 0;
-    bool IsValid = false;
-    std::string LastError;
+    InputState input;
+    int width = 0;
+    int height = 0;
+    bool isValid = false;
+    std::string lastError;
 };
 
 SDLPlatform::SDLPlatform(int width, int height, std::string_view title)
     : m_pImpl(std::make_unique<Impl>())
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        m_pImpl->LastError = BuildSdlError("SDL_Init failed");
+        m_pImpl->lastError = BuildSdlError("SDL_Init failed");
         return;
     }
 
@@ -51,7 +51,7 @@ SDLPlatform::SDLPlatform(int width, int height, std::string_view title)
         height,
         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     if (m_pImpl->pWindow == nullptr) {
-        m_pImpl->LastError = BuildSdlError("SDL_CreateWindow failed");
+        m_pImpl->lastError = BuildSdlError("SDL_CreateWindow failed");
         SDL_Quit();
         return;
     }
@@ -61,16 +61,16 @@ SDLPlatform::SDLPlatform(int width, int height, std::string_view title)
         -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (m_pImpl->pRenderer == nullptr) {
-        m_pImpl->LastError = BuildSdlError("SDL_CreateRenderer failed");
+        m_pImpl->lastError = BuildSdlError("SDL_CreateRenderer failed");
         SDL_DestroyWindow(m_pImpl->pWindow);
         m_pImpl->pWindow = nullptr;
         SDL_Quit();
         return;
     }
 
-    m_pImpl->Width = width;
-    m_pImpl->Height = height;
-    m_pImpl->IsValid = true;
+    m_pImpl->width = width;
+    m_pImpl->height = height;
+    m_pImpl->isValid = true;
 }
 
 SDLPlatform::~SDLPlatform()
@@ -96,26 +96,26 @@ SDLPlatform::~SDLPlatform()
 
 bool SDLPlatform::IsValid() const
 {
-    return m_pImpl->IsValid;
+    return m_pImpl->isValid;
 }
 
 std::string_view SDLPlatform::GetLastError() const
 {
-    return m_pImpl->LastError;
+    return m_pImpl->lastError;
 }
 
 void SDLPlatform::BeginFrame()
 {
-    if (!m_pImpl->IsValid) {
+    if (!m_pImpl->isValid) {
         return;
     }
 
-    m_pImpl->Input.BeginFrame();
+    m_pImpl->input.BeginFrame();
 }
 
 void SDLPlatform::PollEvents()
 {
-    if (!m_pImpl->IsValid) {
+    if (!m_pImpl->isValid) {
         return;
     }
 
@@ -123,42 +123,42 @@ void SDLPlatform::PollEvents()
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
         case SDL_QUIT:
-            m_pImpl->Input.Quit = true;
+            m_pImpl->input.quit = true;
             break;
 
         case SDL_KEYDOWN:
         case SDL_KEYUP: {
             const KeyCode code = MapKeyCode(event.key.keysym.sym);
-            m_pImpl->Input.SetKeyDown(code, event.type == SDL_KEYDOWN);
+            m_pImpl->input.SetKeyDown(code, event.type == SDL_KEYDOWN);
             break;
         }
 
         case SDL_MOUSEMOTION:
-            m_pImpl->Input.MouseX = event.motion.x;
-            m_pImpl->Input.MouseY = event.motion.y;
-            m_pImpl->Input.MouseDeltaX += event.motion.xrel;
-            m_pImpl->Input.MouseDeltaY += event.motion.yrel;
+            m_pImpl->input.mouseX = event.motion.x;
+            m_pImpl->input.mouseY = event.motion.y;
+            m_pImpl->input.mouseDeltaX += event.motion.xrel;
+            m_pImpl->input.mouseDeltaY += event.motion.yrel;
             break;
 
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEBUTTONUP:
             if (event.button.button == SDL_BUTTON_LEFT) {
-                m_pImpl->Input.MouseDownL = event.type == SDL_MOUSEBUTTONDOWN;
+                m_pImpl->input.mouseDownL = event.type == SDL_MOUSEBUTTONDOWN;
             }
 
             if (event.button.button == SDL_BUTTON_RIGHT) {
-                m_pImpl->Input.MouseDownR = event.type == SDL_MOUSEBUTTONDOWN;
+                m_pImpl->input.mouseDownR = event.type == SDL_MOUSEBUTTONDOWN;
             }
             break;
 
         case SDL_MOUSEWHEEL:
-            m_pImpl->Input.WheelDeltaY += static_cast<float>(event.wheel.preciseY);
+            m_pImpl->input.wheelDeltaY += static_cast<float>(event.wheel.preciseY);
             break;
 
         case SDL_WINDOWEVENT:
             if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                m_pImpl->Width = event.window.data1;
-                m_pImpl->Height = event.window.data2;
+                m_pImpl->width = event.window.data1;
+                m_pImpl->height = event.window.data2;
             }
             break;
 
@@ -170,12 +170,12 @@ void SDLPlatform::PollEvents()
 
 const InputState& SDLPlatform::GetInput() const
 {
-    return m_pImpl->Input;
+    return m_pImpl->input;
 }
 
 void SDLPlatform::PresentRgba8(const uint32_t* pPixels, int width, int height, int pitchBytes)
 {
-    if (!m_pImpl->IsValid || pPixels == nullptr || width <= 0 || height <= 0) {
+    if (!m_pImpl->isValid || pPixels == nullptr || width <= 0 || height <= 0) {
         return;
     }
 
@@ -198,27 +198,27 @@ void SDLPlatform::PresentRgba8(const uint32_t* pPixels, int width, int height, i
             width,
             height);
         if (m_pImpl->pTexture == nullptr) {
-            m_pImpl->LastError = BuildSdlError("SDL_CreateTexture failed");
-            m_pImpl->Input.Quit = true;
+            m_pImpl->lastError = BuildSdlError("SDL_CreateTexture failed");
+            m_pImpl->input.quit = true;
             return;
         }
     }
 
     if (SDL_UpdateTexture(m_pImpl->pTexture, nullptr, pPixels, pitchBytes) != 0) {
-        m_pImpl->LastError = BuildSdlError("SDL_UpdateTexture failed");
-        m_pImpl->Input.Quit = true;
+        m_pImpl->lastError = BuildSdlError("SDL_UpdateTexture failed");
+        m_pImpl->input.quit = true;
         return;
     }
 
     if (SDL_RenderClear(m_pImpl->pRenderer) != 0) {
-        m_pImpl->LastError = BuildSdlError("SDL_RenderClear failed");
-        m_pImpl->Input.Quit = true;
+        m_pImpl->lastError = BuildSdlError("SDL_RenderClear failed");
+        m_pImpl->input.quit = true;
         return;
     }
 
     if (SDL_RenderCopy(m_pImpl->pRenderer, m_pImpl->pTexture, nullptr, nullptr) != 0) {
-        m_pImpl->LastError = BuildSdlError("SDL_RenderCopy failed");
-        m_pImpl->Input.Quit = true;
+        m_pImpl->lastError = BuildSdlError("SDL_RenderCopy failed");
+        m_pImpl->input.quit = true;
         return;
     }
 
@@ -227,7 +227,7 @@ void SDLPlatform::PresentRgba8(const uint32_t* pPixels, int width, int height, i
 
 double SDLPlatform::GetNowSeconds() const
 {
-    if (!m_pImpl->IsValid) {
+    if (!m_pImpl->isValid) {
         return 0.0;
     }
 
@@ -236,12 +236,12 @@ double SDLPlatform::GetNowSeconds() const
 
 int SDLPlatform::GetWidth() const
 {
-    return m_pImpl->Width;
+    return m_pImpl->width;
 }
 
 int SDLPlatform::GetHeight() const
 {
-    return m_pImpl->Height;
+    return m_pImpl->height;
 }
 
 }  // namespace platform

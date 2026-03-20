@@ -22,7 +22,7 @@ int main()
         platform.PollEvents();
 
         const platform::InputState& input = platform.GetInput();
-        if (input.Quit || input.IsKeyDown(platform::KeyCode::Escape)) {
+        if (input.quit || input.IsKeyDown(platform::KeyCode::Escape)) {
             break;
         }
 

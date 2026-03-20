@@ -24,10 +24,10 @@ public:
     const uint32_t* GetColorData() const;
 
 private:
-    int m_Width = 0;
-    int m_Height = 0;
-    std::vector<uint32_t> m_ColorBuffer;
-    std::vector<float> m_DepthBuffer;
+    int m_width = 0;
+    int m_height = 0;
+    std::vector<uint32_t> m_colorBuffer;
+    std::vector<float> m_depthBuffer;
 };
 
 }  // namespace core
