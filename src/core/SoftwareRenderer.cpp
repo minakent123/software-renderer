@@ -1,5 +1,6 @@
 #include "core/SoftwareRenderer.h"
 
+#include <algorithm>
 #include <cmath>
 #include <stdint.h>
 #include <utility>
@@ -11,8 +12,27 @@ namespace {
 
 struct Point
 {
-    int X;
-    int Y;
+    int x;
+    int y;
+};
+
+struct Color
+{
+    double r;
+    double g;
+    double b;
+};
+
+struct Vertex
+{
+    Point position;
+    Color color;
+};
+
+struct EdgeSample
+{
+    double x;
+    Color color;
 };
 
 uint32_t PackRgba8(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
@@ -26,17 +46,36 @@ int Abs(int value)
     return value < 0 ? -value : value;
 }
 
-void SortVerticesByY(Point& v0, Point& v1, Point& v2)
+uint8_t ToByte(double value)
 {
-    if (v1.Y < v0.Y || (v1.Y == v0.Y && v1.X < v0.X)) {
+    return static_cast<uint8_t>(std::clamp(std::round(value), 0.0, 255.0));
+}
+
+uint32_t PackColor(const Color& color)
+{
+    return PackRgba8(ToByte(color.r), ToByte(color.g), ToByte(color.b), 255);
+}
+
+Color LerpColor(const Color& a, const Color& b, double t)
+{
+    return {
+        a.r + (b.r - a.r) * t,
+        a.g + (b.g - a.g) * t,
+        a.b + (b.b - a.b) * t,
+    };
+}
+
+void SortVerticesByY(Vertex& v0, Vertex& v1, Vertex& v2)
+{
+    if (v1.position.y < v0.position.y || (v1.position.y == v0.position.y && v1.position.x < v0.position.x)) {
         std::swap(v0, v1);
     }
 
-    if (v2.Y < v1.Y || (v2.Y == v1.Y && v2.X < v1.X)) {
+    if (v2.position.y < v1.position.y || (v2.position.y == v1.position.y && v2.position.x < v1.position.x)) {
         std::swap(v1, v2);
     }
 
-    if (v1.Y < v0.Y || (v1.Y == v0.Y && v1.X < v0.X)) {
+    if (v1.position.y < v0.position.y || (v1.position.y == v0.position.y && v1.position.x < v0.position.x)) {
         std::swap(v0, v1);
     }
 }
@@ -70,71 +109,92 @@ void DrawLine(Surface& target, int x0, int y0, int x1, int y1, uint32_t color)
     }
 }
 
-void DrawHorizontalSpan(Surface& target, int x0, int x1, int y, uint32_t color)
+void DrawHorizontalSpanInterpolated(
+    Surface& target,
+    int x0,
+    int x1,
+    int y,
+    EdgeSample leftSample,
+    EdgeSample rightSample)
 {
     if (x1 < x0) {
         std::swap(x0, x1);
+        std::swap(leftSample, rightSample);
     }
 
-    for (int x = x0; x <= x1; ++x) {
-        target.PutPixel(x, y, color);
-    }
-}
-
-bool IsScanlineInEdgeRange(int y, const Point& a, const Point& b)
-{
-    if (a.Y == b.Y) {
-        return false;
-    }
-
-    const int minY = a.Y < b.Y ? a.Y : b.Y;
-    const int maxY = a.Y < b.Y ? b.Y : a.Y;
-    return y >= minY && y < maxY;
-}
-
-double GetEdgeIntersectionX(const Point& a, const Point& b, int y)
-{
-    const double scanlineY = static_cast<double>(y) + 0.5;
-    const double deltaY = static_cast<double>(b.Y - a.Y);
-    const double t = (scanlineY - static_cast<double>(a.Y)) / deltaY;
-    return static_cast<double>(a.X) + t * static_cast<double>(b.X - a.X);
-}
-
-void FillTriangle(Surface& target, Point v0, Point v1, Point v2, uint32_t color)
-{
-    SortVerticesByY(v0, v1, v2);
-
-    if (v0.Y == v2.Y) {
+    const double deltaX = rightSample.x - leftSample.x;
+    if (deltaX == 0.0) {
+        for (int x = x0; x <= x1; ++x) {
+            target.PutPixel(x, y, PackColor(leftSample.color));
+        }
         return;
     }
 
-    for (int y = v0.Y; y < v2.Y; ++y) {
-        double intersections[2] = {};
+    for (int x = x0; x <= x1; ++x) {
+        const double sampleX = static_cast<double>(x) + 0.5;
+        const double t = std::clamp((sampleX - leftSample.x) / deltaX, 0.0, 1.0);
+        target.PutPixel(x, y, PackColor(LerpColor(leftSample.color, rightSample.color, t)));
+    }
+}
+
+bool IsScanlineInEdgeRange(int y, const Vertex& a, const Vertex& b)
+{
+    if (a.position.y == b.position.y) {
+        return false;
+    }
+
+    const int minY = a.position.y < b.position.y ? a.position.y : b.position.y;
+    const int maxY = a.position.y < b.position.y ? b.position.y : a.position.y;
+    return y >= minY && y < maxY;
+}
+
+EdgeSample GetEdgeSample(const Vertex& a, const Vertex& b, int y)
+{
+    const double scanlineY = static_cast<double>(y) + 0.5;
+    const double deltaY = static_cast<double>(b.position.y - a.position.y);
+    const double t = (scanlineY - static_cast<double>(a.position.y)) / deltaY;
+
+    return {
+        static_cast<double>(a.position.x) + t * static_cast<double>(b.position.x - a.position.x),
+        LerpColor(a.color, b.color, t),
+    };
+}
+
+void FillTriangle(Surface& target, Vertex v0, Vertex v1, Vertex v2)
+{
+    SortVerticesByY(v0, v1, v2);
+
+    if (v0.position.y == v2.position.y) {
+        return;
+    }
+
+    for (int y = v0.position.y; y < v2.position.y; ++y) {
+        EdgeSample intersections[2] = {};
         int intersectionCount = 0;
 
         if (IsScanlineInEdgeRange(y, v0, v1)) {
-            intersections[intersectionCount++] = GetEdgeIntersectionX(v0, v1, y);
+            intersections[intersectionCount++] = GetEdgeSample(v0, v1, y);
         }
 
         if (IsScanlineInEdgeRange(y, v1, v2)) {
-            intersections[intersectionCount++] = GetEdgeIntersectionX(v1, v2, y);
+            intersections[intersectionCount++] = GetEdgeSample(v1, v2, y);
         }
 
         if (IsScanlineInEdgeRange(y, v0, v2)) {
-            intersections[intersectionCount++] = GetEdgeIntersectionX(v0, v2, y);
+            intersections[intersectionCount++] = GetEdgeSample(v0, v2, y);
         }
 
         if (intersectionCount != 2) {
             continue;
         }
 
-        const double leftIntersection = intersections[0] < intersections[1] ? intersections[0] : intersections[1];
-        const double rightIntersection = intersections[0] < intersections[1] ? intersections[1] : intersections[0];
-        const int startX = static_cast<int>(std::ceil(leftIntersection - 0.5));
-        const int endX = static_cast<int>(std::floor(rightIntersection - 0.5));
+        const EdgeSample leftSample = intersections[0].x < intersections[1].x ? intersections[0] : intersections[1];
+        const EdgeSample rightSample = intersections[0].x < intersections[1].x ? intersections[1] : intersections[0];
+        const int startX = static_cast<int>(std::ceil(leftSample.x - 0.5));
+        const int endX = static_cast<int>(std::floor(rightSample.x - 0.5));
 
         if (startX <= endX) {
-            DrawHorizontalSpan(target, startX, endX, y, color);
+            DrawHorizontalSpanInterpolated(target, startX, endX, y, leftSample, rightSample);
         }
     }
 }
@@ -153,16 +213,15 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
         return;
     }
 
-    const Point apex = {width / 2, height / 4};
-    const Point left = {width / 4, (height * 3) / 4};
-    const Point right = {(width * 3) / 4, (height * 3) / 4};
-    const uint32_t fillColor = PackRgba8(255, 180, 80, 255);
+    const Vertex apex = {{width / 2, height / 4}, {255.0, 80.0, 80.0}};
+    const Vertex left = {{width / 4, (height * 3) / 4}, {80.0, 255.0, 120.0}};
+    const Vertex right = {{(width * 3) / 4, (height * 3) / 4}, {80.0, 140.0, 255.0}};
     const uint32_t outlineColor = PackRgba8(255, 245, 220, 255);
 
-    FillTriangle(target, apex, left, right, fillColor);
-    DrawLine(target, apex.X, apex.Y, left.X, left.Y, outlineColor);
-    DrawLine(target, left.X, left.Y, right.X, right.Y, outlineColor);
-    DrawLine(target, right.X, right.Y, apex.X, apex.Y, outlineColor);
+    FillTriangle(target, apex, left, right);
+    DrawLine(target, apex.position.x, apex.position.y, left.position.x, left.position.y, outlineColor);
+    DrawLine(target, left.position.x, left.position.y, right.position.x, right.position.y, outlineColor);
+    DrawLine(target, right.position.x, right.position.y, apex.position.x, apex.position.y, outlineColor);
 }
 
 }  // namespace core
