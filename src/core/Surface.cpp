@@ -3,6 +3,19 @@
 #include <algorithm>
 
 namespace core {
+namespace {
+
+bool TryGetPixelIndex(int width, int height, int x, int y, std::size_t& index)
+{
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+        return false;
+    }
+
+    index = static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x);
+    return true;
+}
+
+}  // namespace
 
 Surface::Surface(int width, int height)
 {
@@ -31,12 +44,28 @@ void Surface::ClearDepth(float depth)
 
 void Surface::PutPixel(int x, int y, uint32_t color)
 {
-    if (x < 0 || y < 0 || x >= m_width || y >= m_height) {
+    std::size_t index = 0;
+    if (!TryGetPixelIndex(m_width, m_height, x, y, index)) {
         return;
     }
 
-    const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(m_width) + static_cast<std::size_t>(x);
     m_colorBuffer[index] = color;
+}
+
+bool Surface::PutPixel(int x, int y, uint32_t color, float depth)
+{
+    std::size_t index = 0;
+    if (!TryGetPixelIndex(m_width, m_height, x, y, index)) {
+        return false;
+    }
+
+    if (depth >= m_depthBuffer[index]) {
+        return false;
+    }
+
+    m_depthBuffer[index] = depth;
+    m_colorBuffer[index] = color;
+    return true;
 }
 
 int Surface::GetWidth() const

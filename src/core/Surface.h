@@ -15,6 +15,7 @@ public:
     void ClearColor(uint32_t color);
     void ClearDepth(float depth);
     void PutPixel(int x, int y, uint32_t color);
+    bool PutPixel(int x, int y, uint32_t color, float depth);
 
     int GetWidth() const;
     int GetHeight() const;

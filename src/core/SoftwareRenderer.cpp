@@ -26,12 +26,14 @@ struct Color
 struct Vertex
 {
     Point position;
+    double depth;
     Color color;
 };
 
 struct EdgeSample
 {
     double x;
+    double depth;
     Color color;
 };
 
@@ -56,12 +58,22 @@ uint32_t PackColor(const Color& color)
     return PackRgba8(ToByte(color.r), ToByte(color.g), ToByte(color.b), 255);
 }
 
+double LerpValue(double a, double b, double t)
+{
+    return a + (b - a) * t;
+}
+
+float ToDepth(double depth)
+{
+    return static_cast<float>(std::clamp(depth, 0.0, 1.0));
+}
+
 Color LerpColor(const Color& a, const Color& b, double t)
 {
     return {
-        a.r + (b.r - a.r) * t,
-        a.g + (b.g - a.g) * t,
-        a.b + (b.b - a.b) * t,
+        LerpValue(a.r, b.r, t),
+        LerpValue(a.g, b.g, t),
+        LerpValue(a.b, b.b, t),
     };
 }
 
@@ -125,7 +137,7 @@ void DrawHorizontalSpanInterpolated(
     const double deltaX = rightSample.x - leftSample.x;
     if (deltaX == 0.0) {
         for (int x = x0; x <= x1; ++x) {
-            target.PutPixel(x, y, PackColor(leftSample.color));
+            target.PutPixel(x, y, PackColor(leftSample.color), ToDepth(leftSample.depth));
         }
         return;
     }
@@ -133,7 +145,9 @@ void DrawHorizontalSpanInterpolated(
     for (int x = x0; x <= x1; ++x) {
         const double sampleX = static_cast<double>(x) + 0.5;
         const double t = std::clamp((sampleX - leftSample.x) / deltaX, 0.0, 1.0);
-        target.PutPixel(x, y, PackColor(LerpColor(leftSample.color, rightSample.color, t)));
+        const Color color = LerpColor(leftSample.color, rightSample.color, t);
+        const double depth = LerpValue(leftSample.depth, rightSample.depth, t);
+        target.PutPixel(x, y, PackColor(color), ToDepth(depth));
     }
 }
 
@@ -156,6 +170,7 @@ EdgeSample GetEdgeSample(const Vertex& a, const Vertex& b, int y)
 
     return {
         static_cast<double>(a.position.x) + t * static_cast<double>(b.position.x - a.position.x),
+        LerpValue(a.depth, b.depth, t),
         LerpColor(a.color, b.color, t),
     };
 }
@@ -199,6 +214,13 @@ void FillTriangle(Surface& target, Vertex v0, Vertex v1, Vertex v2)
     }
 }
 
+void DrawTriangleOutline(Surface& target, const Vertex& a, const Vertex& b, const Vertex& c, uint32_t color)
+{
+    DrawLine(target, a.position.x, a.position.y, b.position.x, b.position.y, color);
+    DrawLine(target, b.position.x, b.position.y, c.position.x, c.position.y, color);
+    DrawLine(target, c.position.x, c.position.y, a.position.x, a.position.y, color);
+}
+
 }  // namespace
 
 void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
@@ -213,15 +235,22 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
         return;
     }
 
-    const Vertex apex = {{width / 2, height / 4}, {255.0, 80.0, 80.0}};
-    const Vertex left = {{width / 4, (height * 3) / 4}, {80.0, 255.0, 120.0}};
-    const Vertex right = {{(width * 3) / 4, (height * 3) / 4}, {80.0, 140.0, 255.0}};
-    const uint32_t outlineColor = PackRgba8(255, 245, 220, 255);
+    const Vertex frontA = {{(width * 2) / 5, height / 5}, 0.25, {255.0, 96.0, 120.0}};
+    const Vertex frontB = {{width / 4, (height * 4) / 5}, 0.25, {255.0, 210.0, 90.0}};
+    const Vertex frontC = {{(width * 3) / 4, (height * 2) / 3}, 0.25, {120.0, 240.0, 255.0}};
 
-    FillTriangle(target, apex, left, right);
-    DrawLine(target, apex.position.x, apex.position.y, left.position.x, left.position.y, outlineColor);
-    DrawLine(target, left.position.x, left.position.y, right.position.x, right.position.y, outlineColor);
-    DrawLine(target, right.position.x, right.position.y, apex.position.x, apex.position.y, outlineColor);
+    const Vertex backA = {{width / 2, height / 6}, 0.70, {80.0, 120.0, 255.0}};
+    const Vertex backB = {{width / 5, (height * 3) / 5}, 0.70, {90.0, 255.0, 150.0}};
+    const Vertex backC = {{(width * 4) / 5, (height * 5) / 6}, 0.70, {255.0, 120.0, 220.0}};
+
+    const uint32_t frontOutlineColor = PackRgba8(255, 245, 220, 255);
+    const uint32_t backOutlineColor = PackRgba8(120, 160, 220, 255);
+
+    FillTriangle(target, frontA, frontB, frontC);
+    FillTriangle(target, backA, backB, backC);
+
+    DrawTriangleOutline(target, backA, backB, backC, backOutlineColor);
+    DrawTriangleOutline(target, frontA, frontB, frontC, frontOutlineColor);
 }
 
 }  // namespace core
