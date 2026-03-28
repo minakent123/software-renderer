@@ -38,6 +38,13 @@ struct EdgeSample
     Color color;
 };
 
+struct Triangle3
+{
+    Vertex3 a;
+    Vertex3 b;
+    Vertex3 c;
+};
+
 uint32_t PackRgba8(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
     return static_cast<uint32_t>(r) | (static_cast<uint32_t>(g) << 8U) | (static_cast<uint32_t>(b) << 16U) |
@@ -67,6 +74,15 @@ double LerpValue(double a, double b, double t)
 float ToDepth(double depth)
 {
     return static_cast<float>(std::clamp(depth, 0.0, 1.0));
+}
+
+Triangle3 TranslateTriangle3(const Triangle3& triangle, const Vector3& translation)
+{
+    return {
+        Translate(triangle.a, translation),
+        Translate(triangle.b, translation),
+        Translate(triangle.c, translation),
+    };
 }
 
 Color LerpColor(const Color& a, const Color& b, double t)
@@ -235,6 +251,16 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
     if (width <= 0 || height <= 0) {
         return;
     }
+
+    const Triangle3 localTriangle = {
+        {{-0.40F, -0.45F, 0.0F}, 255.0F, 96.0F, 120.0F},
+        {{-0.55F, 0.40F, 0.0F}, 255.0F, 210.0F, 90.0F},
+        {{0.45F, 0.20F, 0.0F}, 120.0F, 240.0F, 255.0F},
+    };
+
+    const Vector3 worldTranslation = {0.15F, -0.10F, 2.0F};
+    const Triangle3 worldTriangle = TranslateTriangle3(localTriangle, worldTranslation);
+    static_cast<void>(worldTriangle);
 
     const Vertex frontA = {{(width * 2) / 5, height / 5}, 0.25, {255.0, 96.0, 120.0}};
     const Vertex frontB = {{width / 4, (height * 4) / 5}, 0.25, {255.0, 210.0, 90.0}};

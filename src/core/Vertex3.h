@@ -12,4 +12,14 @@ struct Vertex3
     float b;
 };
 
+inline Vertex3 Translate(const Vertex3& vertex, const Vector3& translation)
+{
+    return {
+        Add(vertex.position, translation),
+        vertex.r,
+        vertex.g,
+        vertex.b,
+    };
+}
+
 }  // namespace core
