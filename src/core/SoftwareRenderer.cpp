@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "core/Surface.h"
+#include "core/Vertex3.h"
 
 namespace core {
 namespace {
