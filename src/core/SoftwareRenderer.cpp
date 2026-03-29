@@ -85,6 +85,25 @@ Triangle3 TranslateTriangle3(const Triangle3& triangle, const Vector3& translati
     };
 }
 
+Vertex3 TransformToViewSpace(const Vertex3& vertex, const Vector3& cameraPosition)
+{
+    return {
+        Subtract(vertex.position, cameraPosition),
+        vertex.r,
+        vertex.g,
+        vertex.b,
+    };
+}
+
+Triangle3 TransformToViewSpace(const Triangle3& triangle, const Vector3& cameraPosition)
+{
+    return {
+        TransformToViewSpace(triangle.a, cameraPosition),
+        TransformToViewSpace(triangle.b, cameraPosition),
+        TransformToViewSpace(triangle.c, cameraPosition),
+    };
+}
+
 Color LerpColor(const Color& a, const Color& b, double t)
 {
     return {
@@ -260,7 +279,9 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
 
     const Vector3 worldTranslation = {0.15F, -0.10F, 2.0F};
     const Triangle3 worldTriangle = TranslateTriangle3(localTriangle, worldTranslation);
-    static_cast<void>(worldTriangle);
+    const Vector3 cameraPosition = {0.0F, 0.0F, 0.0F};
+    const Triangle3 viewTriangle = TransformToViewSpace(worldTriangle, cameraPosition);
+    static_cast<void>(viewTriangle);
 
     const Vertex frontA = {{(width * 2) / 5, height / 5}, 0.25, {255.0, 96.0, 120.0}};
     const Vertex frontB = {{width / 4, (height * 4) / 5}, 0.25, {255.0, 210.0, 90.0}};
