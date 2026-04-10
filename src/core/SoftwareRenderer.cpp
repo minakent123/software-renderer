@@ -45,6 +45,9 @@ struct Triangle3
     Vertex3 c;
 };
 
+constexpr float ProjectionNearZ = 0.1F;
+constexpr float ProjectionFarZ = 10.0F;
+
 uint32_t PackRgba8(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
     return static_cast<uint32_t>(r) | (static_cast<uint32_t>(g) << 8U) | (static_cast<uint32_t>(b) << 16U) |
@@ -111,6 +114,44 @@ Color LerpColor(const Color& a, const Color& b, double t)
         LerpValue(a.g, b.g, t),
         LerpValue(a.b, b.b, t),
     };
+}
+
+Color ToColor(const Vertex3& vertex)
+{
+    return {
+        static_cast<double>(vertex.r),
+        static_cast<double>(vertex.g),
+        static_cast<double>(vertex.b),
+    };
+}
+
+bool TryProjectVertexToScreen(const Vertex3& vertex, int width, int height, Vertex& projectedVertex)
+{
+    if (vertex.position.z <= ProjectionNearZ) {
+        return false;
+    }
+
+    const float inverseZ = 1.0F / vertex.position.z;
+    const float normalizedX = vertex.position.x * inverseZ;
+    const float normalizedY = vertex.position.y * inverseZ;
+
+    const float screenX = (normalizedX * 0.5F + 0.5F) * static_cast<float>(width);
+    const float screenY = (0.5F - normalizedY * 0.5F) * static_cast<float>(height);
+    const float depth = (vertex.position.z - ProjectionNearZ) / (ProjectionFarZ - ProjectionNearZ);
+
+    projectedVertex = {
+        {static_cast<int>(std::round(screenX)), static_cast<int>(std::round(screenY))},
+        static_cast<double>(std::clamp(depth, 0.0F, 1.0F)),
+        ToColor(vertex),
+    };
+    return true;
+}
+
+bool TryProjectTriangleToScreen(const Triangle3& triangle, int width, int height, Vertex& a, Vertex& b, Vertex& c)
+{
+    return TryProjectVertexToScreen(triangle.a, width, height, a) &&
+           TryProjectVertexToScreen(triangle.b, width, height, b) &&
+           TryProjectVertexToScreen(triangle.c, width, height, c);
 }
 
 void SortVerticesByY(Vertex& v0, Vertex& v1, Vertex& v2)
@@ -281,24 +322,17 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
     const Triangle3 worldTriangle = TranslateTriangle3(localTriangle, worldTranslation);
     const Vector3 cameraPosition = {0.0F, 0.0F, 0.0F};
     const Triangle3 viewTriangle = TransformToViewSpace(worldTriangle, cameraPosition);
-    static_cast<void>(viewTriangle);
 
-    const Vertex frontA = {{(width * 2) / 5, height / 5}, 0.25, {255.0, 96.0, 120.0}};
-    const Vertex frontB = {{width / 4, (height * 4) / 5}, 0.25, {255.0, 210.0, 90.0}};
-    const Vertex frontC = {{(width * 3) / 4, (height * 2) / 3}, 0.25, {120.0, 240.0, 255.0}};
+    Vertex projectedA = {};
+    Vertex projectedB = {};
+    Vertex projectedC = {};
+    if (!TryProjectTriangleToScreen(viewTriangle, width, height, projectedA, projectedB, projectedC)) {
+        return;
+    }
 
-    const Vertex backA = {{width / 2, height / 6}, 0.70, {80.0, 120.0, 255.0}};
-    const Vertex backB = {{width / 5, (height * 3) / 5}, 0.70, {90.0, 255.0, 150.0}};
-    const Vertex backC = {{(width * 4) / 5, (height * 5) / 6}, 0.70, {255.0, 120.0, 220.0}};
-
-    const uint32_t frontOutlineColor = PackRgba8(255, 245, 220, 255);
-    const uint32_t backOutlineColor = PackRgba8(120, 160, 220, 255);
-
-    FillTriangle(target, frontA, frontB, frontC);
-    FillTriangle(target, backA, backB, backC);
-
-    DrawTriangleOutline(target, backA, backB, backC, backOutlineColor);
-    DrawTriangleOutline(target, frontA, frontB, frontC, frontOutlineColor);
+    const uint32_t outlineColor = PackRgba8(255, 245, 220, 255);
+    FillTriangle(target, projectedA, projectedB, projectedC);
+    DrawTriangleOutline(target, projectedA, projectedB, projectedC, outlineColor);
 }
 
 }  // namespace core
