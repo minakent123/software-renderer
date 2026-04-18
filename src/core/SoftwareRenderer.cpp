@@ -88,6 +88,37 @@ Triangle3 TranslateTriangle3(const Triangle3& triangle, const Vector3& translati
     };
 }
 
+Vector3 RotateAroundY(const Vector3& position, float angleRadians)
+{
+    const float cosine = std::cos(angleRadians);
+    const float sine = std::sin(angleRadians);
+
+    return {
+        position.x * cosine - position.z * sine,
+        position.y,
+        position.x * sine + position.z * cosine,
+    };
+}
+
+Vertex3 RotateAroundY(const Vertex3& vertex, float angleRadians)
+{
+    return {
+        RotateAroundY(vertex.position, angleRadians),
+        vertex.r,
+        vertex.g,
+        vertex.b,
+    };
+}
+
+Triangle3 RotateAroundY(const Triangle3& triangle, float angleRadians)
+{
+    return {
+        RotateAroundY(triangle.a, angleRadians),
+        RotateAroundY(triangle.b, angleRadians),
+        RotateAroundY(triangle.c, angleRadians),
+    };
+}
+
 Vertex3 TransformToViewSpace(const Vertex3& vertex, const Vector3& cameraPosition)
 {
     return {
@@ -300,7 +331,7 @@ void DrawTriangleOutline(Surface& target, const Vertex& a, const Vertex& b, cons
 
 }  // namespace
 
-void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
+void SoftwareRenderer::Render(Surface& target, double timeSeconds) const
 {
     target.ClearColor(PackRgba8(24, 28, 40, 255));
     target.ClearDepth(1.0F);
@@ -318,8 +349,11 @@ void SoftwareRenderer::Render(Surface& target, double /*timeSeconds*/) const
         {{0.45F, 0.20F, 0.0F}, 120.0F, 240.0F, 255.0F},
     };
 
+    const float rotationAngleRadians = static_cast<float>(timeSeconds);
+    const Triangle3 rotatedTriangle = RotateAroundY(localTriangle, rotationAngleRadians);
+
     const Vector3 worldTranslation = {0.15F, -0.10F, 2.0F};
-    const Triangle3 worldTriangle = TranslateTriangle3(localTriangle, worldTranslation);
+    const Triangle3 worldTriangle = TranslateTriangle3(rotatedTriangle, worldTranslation);
     const Vector3 cameraPosition = {0.0F, 0.0F, 0.0F};
     const Triangle3 viewTriangle = TransformToViewSpace(worldTriangle, cameraPosition);
 
