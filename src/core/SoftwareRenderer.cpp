@@ -138,6 +138,19 @@ Triangle3 TransformToViewSpace(const Triangle3& triangle, const Vector3& cameraP
     };
 }
 
+Vector3 GetFaceNormal(const Triangle3& triangle)
+{
+    const Vector3 edgeAB = Subtract(triangle.b.position, triangle.a.position);
+    const Vector3 edgeAC = Subtract(triangle.c.position, triangle.a.position);
+    return Cross(edgeAB, edgeAC);
+}
+
+bool IsFacingCamera(const Vector3& faceNormal)
+{
+    constexpr Vector3 viewForward = {0.0F, 0.0F, 1.0F};
+    return Dot(faceNormal, viewForward) < 0.0F;
+}
+
 Color LerpColor(const Color& a, const Color& b, double t)
 {
     return {
@@ -145,6 +158,20 @@ Color LerpColor(const Color& a, const Color& b, double t)
         LerpValue(a.g, b.g, t),
         LerpValue(a.b, b.b, t),
     };
+}
+
+Color ScaleColor(const Color& color, double scale)
+{
+    return {
+        color.r * scale,
+        color.g * scale,
+        color.b * scale,
+    };
+}
+
+void ScaleVertexColor(Vertex& vertex, double scale)
+{
+    vertex.color = ScaleColor(vertex.color, scale);
 }
 
 Color ToColor(const Vertex3& vertex)
@@ -364,7 +391,16 @@ void SoftwareRenderer::Render(Surface& target, double timeSeconds) const
         return;
     }
 
-    const uint32_t outlineColor = PackRgba8(255, 245, 220, 255);
+    const Vector3 faceNormal = GetFaceNormal(viewTriangle);
+    const bool isFacingCamera = IsFacingCamera(faceNormal);
+    if (!isFacingCamera) {
+        constexpr double backFaceBrightness = 0.25;
+        ScaleVertexColor(projectedA, backFaceBrightness);
+        ScaleVertexColor(projectedB, backFaceBrightness);
+        ScaleVertexColor(projectedC, backFaceBrightness);
+    }
+
+    const uint32_t outlineColor = isFacingCamera ? PackRgba8(255, 245, 220, 255) : PackRgba8(72, 96, 156, 255);
     FillTriangle(target, projectedA, projectedB, projectedC);
     DrawTriangleOutline(target, projectedA, projectedB, projectedC, outlineColor);
 }
